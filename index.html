@@ -206,49 +206,92 @@
       cursor: pointer;
     }
 
-    /* 8. PRODUCT GRID — fluid by default, tuned per tier below */
+    /* 8. PRODUCT ROW — flexbox instead of grid, on purpose.
+       CSS Grid's `auto-fit` collapses to fewer columns once the
+       available width can't fit another card at the minimum size —
+       on an iPad in PORTRAIT (820px logical width) 6 cards don't fit
+       in one row, auto-fit drops to 4 columns, and the leftover 2
+       cards wrap to a second row that sits LEFT-aligned inside the
+       grid template, not centered — even with justify-content:center
+       on the grid itself. That was the real "not aligned" cause.
+       Flexbox with wrap centers each wrapped line independently, so
+       an incomplete last row is always centered, on any device. */
     .products-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      display: flex !important;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: stretch;
       gap: clamp(10px, 2vw, 20px);
       padding: 5px clamp(12px, 3vw, 24px);
+      width: 100% !important;
+      max-width: 1600px !important; /* keeps rows compact and centered on very wide kiosk displays */
+      margin: 0 auto !important;
     }
-    .card-btn { min-height: var(--touch-min); }
+    .card-btn {
+      flex: 1 1 170px;
+      max-width: 240px;
+      min-height: var(--touch-min);
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
     .card-number { font-size: var(--fs-card-num) !important; }
-    .card-label { font-size: var(--fs-card-label) !important; }
+    .card-label {
+      font-size: var(--fs-card-label) !important;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.25;
+    }
 
     /* ==========================================================
-       TIERED BREAKPOINTS
+       TIERED BREAKPOINTS (logical/CSS px, not device pixels)
        Phone      : ≤ 600px
-       Tablet     : 601px – 1024px  (covers iPad mini/Air/Pro portrait & most Android tablets)
-       Tablet LS  : 1025px – 1366px AND orientation landscape (iPad Pro 11"/12.9" landscape etc.)
+       Tablet     : 601px – 1024px  → iPad 11th gen PORTRAIT is 820px, lands here
+       Tablet LS  : 900px – 1366px AND orientation landscape → iPad 11th gen
+                    LANDSCAPE is 1180px, lands here
        Desktop    : > 1366px
-       Using width-based tiers instead of a single max-height cutoff
-       avoids the old rule silently skipping larger tablets in
-       landscape (e.g. 1194×834, 1366×1024).
+       (iPad 11th gen / A16, 2025: 2360×1640 physical px @ 2x density
+        → 1180×820 CSS px landscape, 820×1180 CSS px portrait.)
        ========================================================== */
 
-    /* ---- Tablet portrait & general tablet tier ---- */
+    /* ---- Tablet portrait & general tablet tier
+       iPad 11th gen portrait = 820px logical width: 3 cards per row
+       fit comfortably (≈230px each) → 6 products form a clean 2x3
+       grid instead of an awkward 4+2 wrap. ---- */
     @media (min-width: 601px) and (max-width: 1024px) {
       .brand-badge { transform: scale(0.85); }
       .products-grid {
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
         gap: 16px !important;
       }
-      .card-btn { padding: 16px 10px !important; min-height: 90px !important; }
+      .card-btn {
+        flex-basis: calc(33.333% - 16px) !important; /* 3 per row, matches the 16px gap above */
+        max-width: 260px;
+        padding: 16px 10px !important;
+        min-height: 90px !important;
+      }
       .table-controls { max-width: 500px; }
     }
 
-    /* ---- Tablet landscape (wide short viewport) ---- */
+    /* ---- Tablet landscape (wide short viewport)
+       iPad 11th gen landscape = 1180px logical width: all 6 fit in a
+       single centered row at ~180px each. ---- */
     @media (min-width: 900px) and (max-width: 1366px) and (orientation: landscape) {
       .app-header { padding: 6px 10px !important; }
       .brand-badge { transform: scale(0.75); margin-top: -4px !important; margin-bottom: 0 !important; }
       .products-grid {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
         gap: 14px !important;
         padding: 5px 20px !important;
       }
-      .card-btn { min-height: 78px !important; padding: 12px 8px !important; }
+      .card-btn {
+        flex-basis: 160px !important;
+        max-width: 200px;
+        min-height: 78px !important;
+        padding: 12px 8px !important;
+      }
       #active-view { padding: 8px 0 !important; }
       .detail-card { padding: 18px !important; }
       .table-controls { bottom: calc(14px + var(--safe-bottom)); }
@@ -261,12 +304,15 @@
       .brand-badge { flex-direction: row; justify-content: center; transform: scale(0.7); margin-bottom: 0 !important; margin-top: -5px !important; }
 
       .products-grid {
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
         gap: 10px !important;
         padding: 5px 12px !important;
-        justify-content: center !important;
       }
-      .card-btn { padding: 10px 8px !important; min-height: 72px !important; }
+      .card-btn {
+        flex-basis: calc(50% - 10px) !important; /* 2 per row on phones, matches gap above */
+        max-width: 220px;
+        padding: 10px 8px !important;
+        min-height: 72px !important;
+      }
 
       #active-view { padding: 8px 0 !important; }
       .detail-card { padding: 14px !important; }
