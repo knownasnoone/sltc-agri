@@ -2,31 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- STRICT Viewport Lock: Prevents pinch-zoom, scaling, and bouncing on all devices -->
+  <!-- STRICT Viewport Lock: prevents pinch-zoom, scaling, bounce; viewport-fit=cover enables safe-area insets on notched/rounded tablet screens -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>SLTC AgriPulse UI - Kiosk Device 03</title>
-  
+
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
   <!-- MQTT.js -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  
+
   <style>
+    /* ==========================================================
+       0. TABLET-FRIENDLY TOKENS
+       Fluid clamp() values scale smoothly between phone, tablet
+       portrait, tablet landscape and desktop kiosk widths instead
+       of jumping at a single 820px breakpoint.
+       ========================================================== */
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+
+      --fs-title: clamp(1.3rem, 1rem + 1.6vw, 2rem);
+      --fs-subtitle: clamp(0.85rem, 0.75rem + 0.5vw, 1.05rem);
+      --fs-body: clamp(0.95rem, 0.85rem + 0.4vw, 1.1rem);
+      --fs-card-num: clamp(1.15rem, 1rem + 0.8vw, 1.5rem);
+      --fs-card-label: clamp(0.8rem, 0.7rem + 0.4vw, 0.95rem);
+      --fs-btn: clamp(0.78rem, 0.7rem + 0.35vw, 0.95rem);
+
+      --touch-min: 48px; /* WCAG/Apple/Material minimum comfortable touch target */
+      --controls-h: 84px; /* actual rendered height of fixed bottom control bar, kept in sync via JS below */
+    }
+
     /* 1. UNIVERSAL BOX-SIZING FIX */
     * {
       box-sizing: border-box !important;
+      -webkit-tap-highlight-color: transparent;
     }
 
     /* 2. KIOSK BASE SETTINGS */
     body, html {
-      -webkit-user-select: none; 
-      user-select: none; 
-      touch-action: pan-y; 
-      overflow: hidden !important; 
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: pan-y;
+      overflow: hidden !important;
       width: 100vw;
+      /* dvh accounts for mobile/tablet browser chrome collapsing; vh is the safe fallback */
       height: 100vh;
+      height: 100dvh;
       margin: 0;
       padding: 0;
+      overscroll-behavior: none;
     }
 
     /* 3. VIDEO WATERMARK HIDER */
@@ -49,22 +79,33 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      height: 100dvh;
       width: 100vw;
       position: absolute;
       top: 0; left: 0;
+      padding-top: var(--safe-top);
+      padding-left: var(--safe-left);
+      padding-right: var(--safe-right);
     }
 
     .app-header {
-      flex-shrink: 0; 
-      padding: 10px !important;
+      flex-shrink: 0;
+      padding: clamp(8px, 1.5vh, 16px) 10px !important;
+    }
+
+    .app-header .main-title {
+      font-size: var(--fs-title) !important;
+    }
+    .app-header .sub-title {
+      font-size: var(--fs-subtitle) !important;
     }
 
     /* View States (Idle vs Active) */
     .view-state {
       flex: 1;
       width: 100%;
-      min-height: 0 !important; 
-      display: none; 
+      min-height: 0 !important;
+      display: none;
       flex-direction: column;
     }
     .view-state.active {
@@ -74,19 +115,21 @@
     #idle-view {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
-      padding-bottom: 90px; 
+      /* room for the fixed control bar + safe-area, not a hardcoded 90px */
+      padding-bottom: calc(var(--controls-h) + var(--safe-bottom) + 16px);
     }
 
     #active-view {
       padding: 15px 0 !important;
-      overflow: hidden !important; 
+      overflow: hidden !important;
     }
 
-    /* 5. PERFECTLY ALIGNED BACK BUTTON */
+    /* 5. BACK BUTTON — sized as a real touch target, aligned with description card */
     .back-btn {
       margin: 0 auto 15px auto !important;
       width: 95%;
       max-width: 800px;
+      min-height: var(--touch-min);
       display: flex !important;
       justify-content: flex-start !important;
       align-items: center;
@@ -98,7 +141,7 @@
       border: 1px solid rgba(255,255,255,0.2) !important;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
       font-weight: 600 !important;
-      font-size: 14px !important;
+      font-size: var(--fs-btn) !important;
       cursor: pointer;
     }
 
@@ -106,54 +149,56 @@
     .split-container {
       flex: 1;
       width: 100%;
-      overflow-y: auto !important; 
+      overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
-      padding-bottom: 90px !important; 
+      padding-bottom: calc(var(--controls-h) + var(--safe-bottom) + 16px) !important;
     }
 
     .detail-card {
       margin: 0 auto;
       width: 95%;
       max-width: 800px;
-      word-wrap: break-word; 
+      word-wrap: break-word;
       overflow-wrap: break-word;
-      background: rgba(15, 20, 30, 0.85) !important; 
+      background: rgba(15, 20, 30, 0.85) !important;
       border-radius: 12px;
-      padding: 25px !important;
+      padding: clamp(15px, 3vw, 25px) !important;
     }
 
+    #prod-title { font-size: clamp(1.15rem, 1rem + 1vw, 1.6rem) !important; }
+    #prod-subtitle { font-size: var(--fs-subtitle) !important; }
     #prod-desc {
-      font-size: 1.05rem !important;
+      font-size: var(--fs-body) !important;
       line-height: 1.6 !important;
-      white-space: pre-wrap; 
+      white-space: pre-wrap;
     }
 
-    /* 7. SYMMETRICAL, CENTERED HARDWARE BUTTONS */
+    /* 7. SYMMETRICAL, CENTERED HARDWARE BUTTONS — real touch targets, safe-area aware */
     .table-controls {
       position: fixed;
-      bottom: 20px;
+      bottom: calc(20px + var(--safe-bottom));
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: stretch;
       gap: 15px;
-      width: 90%;
-      max-width: 450px; /* Keeps them nicely grouped in the center */
+      width: min(90%, 450px);
     }
 
     .table-controls button {
-      flex: 1; /* Makes both buttons exactly the same width */
+      flex: 1; /* equal widths */
+      min-height: var(--touch-min);
       display: flex;
       justify-content: center;
       align-items: center;
       text-align: center;
-      padding: 12px 10px !important; 
-      font-size: 13px !important;    
-      border-radius: 8px !important; 
+      padding: 12px 10px !important;
+      font-size: var(--fs-btn) !important;
+      border-radius: 8px !important;
       border: 1px solid rgba(255,255,255,0.2) !important;
-      white-space: normal; /* Allows text to stack neatly if needed */
+      white-space: normal; /* lets text stack neatly if needed */
       line-height: 1.2;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -161,32 +206,92 @@
       cursor: pointer;
     }
 
-    /* 8. LANDSCAPE & MOBILE OPTIMIZATIONS */
-    @media (max-width: 820px), (orientation: landscape) and (max-height: 800px) {
-      .app-header .main-title { font-size: 1.4rem !important; margin-bottom: 2px !important; text-align: center; }
-      .app-header .sub-title { font-size: 0.85rem !important; text-align: center; padding: 0 10px; margin-bottom: 5px !important;}
+    /* 8. PRODUCT GRID — fluid by default, tuned per tier below */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: clamp(10px, 2vw, 20px);
+      padding: 5px clamp(12px, 3vw, 24px);
+    }
+    .card-btn { min-height: var(--touch-min); }
+    .card-number { font-size: var(--fs-card-num) !important; }
+    .card-label { font-size: var(--fs-card-label) !important; }
+
+    /* ==========================================================
+       TIERED BREAKPOINTS
+       Phone      : ≤ 600px
+       Tablet     : 601px – 1024px  (covers iPad mini/Air/Pro portrait & most Android tablets)
+       Tablet LS  : 1025px – 1366px AND orientation landscape (iPad Pro 11"/12.9" landscape etc.)
+       Desktop    : > 1366px
+       Using width-based tiers instead of a single max-height cutoff
+       avoids the old rule silently skipping larger tablets in
+       landscape (e.g. 1194×834, 1366×1024).
+       ========================================================== */
+
+    /* ---- Tablet portrait & general tablet tier ---- */
+    @media (min-width: 601px) and (max-width: 1024px) {
+      .brand-badge { transform: scale(0.85); }
+      .products-grid {
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
+        gap: 16px !important;
+      }
+      .card-btn { padding: 16px 10px !important; min-height: 90px !important; }
+      .table-controls { max-width: 500px; }
+    }
+
+    /* ---- Tablet landscape (wide short viewport) ---- */
+    @media (min-width: 900px) and (max-width: 1366px) and (orientation: landscape) {
+      .app-header { padding: 6px 10px !important; }
+      .brand-badge { transform: scale(0.75); margin-top: -4px !important; margin-bottom: 0 !important; }
+      .products-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+        gap: 14px !important;
+        padding: 5px 20px !important;
+      }
+      .card-btn { min-height: 78px !important; padding: 12px 8px !important; }
+      #active-view { padding: 8px 0 !important; }
+      .detail-card { padding: 18px !important; }
+      .table-controls { bottom: calc(14px + var(--safe-bottom)); }
+    }
+
+    /* ---- Phone tier (kept from the original design, narrowed threshold) ---- */
+    @media (max-width: 600px) {
+      .app-header .main-title { text-align: center; }
+      .app-header .sub-title { text-align: center; padding: 0 10px; }
       .brand-badge { flex-direction: row; justify-content: center; transform: scale(0.7); margin-bottom: 0 !important; margin-top: -5px !important; }
-      
-      .products-grid { 
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; 
-        gap: 12px !important; 
-        padding: 5px 15px !important;
+
+      .products-grid {
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+        gap: 10px !important;
+        padding: 5px 12px !important;
         justify-content: center !important;
       }
-      .card-btn { padding: 12px 8px !important; min-height: 75px !important; }
-      .card-number { font-size: 1.3rem !important; }
-      .card-label { font-size: 0.85rem !important; }
+      .card-btn { padding: 10px 8px !important; min-height: 72px !important; }
 
-      #active-view { padding: 10px 0 !important; }
-      .detail-card { padding: 15px !important; }
-      #prod-title { font-size: 1.3rem !important; }
-      #prod-subtitle { font-size: 0.95rem !important; }
-      #prod-desc { font-size: 0.95rem !important; }
+      #active-view { padding: 8px 0 !important; }
+      .detail-card { padding: 14px !important; }
 
-      .table-controls {
-        bottom: 15px;
-        width: 95%;
+      .table-controls { bottom: calc(12px + var(--safe-bottom)); width: 95%; }
+    }
+
+    /* ---- Fine-grained short-landscape phones (e.g. phone rotated) ---- */
+    @media (max-height: 420px) and (orientation: landscape) {
+      .app-header { padding: 4px 10px !important; }
+      .brand-badge { transform: scale(0.6); margin: 0 !important; }
+      #active-view { padding: 6px 0 !important; }
+      .table-controls { bottom: calc(8px + var(--safe-bottom)); }
+    }
+
+    /* ---- High-DPI tablet screens: keep hairline borders crisp ---- */
+    @media (min-resolution: 2dppx) {
+      .back-btn, .table-controls button, .detail-card {
+        border-width: 0.5px !important;
       }
+    }
+
+    /* ---- Reduced motion preference (accessibility, also common on kiosk power-saving) ---- */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
     }
   </style>
 </head>
@@ -204,9 +309,11 @@
   <div class="kiosk-container">
 
     <!-- Small MQTT connection indicator -->
-    <div id="mqtt-status-dot" title="Table connection status" style="position:fixed; top:10px; left:10px; width:10px; height:10px; border-radius:50%; background:#E53935; z-index:999; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>
+    <div id="mqtt-status-dot" title="Table connection status"
+         style="position:fixed; top:calc(10px + env(safe-area-inset-top, 0px)); left:calc(10px + env(safe-area-inset-left, 0px)); width:10px; height:10px; border-radius:50%; background:#E53935; z-index:999; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>
 
-    <button id="theme-toggle" class="theme-toggle-btn" onclick="handleThemeTouch()" aria-label="Toggle Theme">
+    <button id="theme-toggle" class="theme-toggle-btn" onclick="handleThemeTouch()" aria-label="Toggle Theme"
+            style="min-width:48px; min-height:48px;">
       <svg class="sun-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="5"></circle>
         <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -254,7 +361,7 @@
           <p id="prod-subtitle" class="subtitle">Innovation Concept Subtitle</p>
           <hr class="divider">
           <p id="prod-desc" class="description">Product full description will appear here...</p>
-          
+
           <div class="highlights-container">
             <h3>Key Features</h3>
             <ul id="prod-highlights"></ul>
@@ -263,7 +370,7 @@
       </div>
     </main>
 
-    <!-- Table Hardware Controls (Perfectly Centered & Aligned) -->
+    <!-- Table Hardware Controls (Perfectly Centered & Aligned, safe-area aware) -->
     <div class="table-controls">
       <button onclick="publishMessage('sltc-agripulse-kiosk/control', 'CONT')" style="background: rgba(0, 123, 255, 0.8); color: white; font-weight: bold;">
         Continuous Rotation
@@ -277,7 +384,25 @@
 
   <script src="js/config-dev3.js"></script>
   <script src="js/app.js"></script>
-  
+
+  <script>
+    // Keep --controls-h in sync with the real rendered height of the bottom bar
+    // so content padding never overlaps or leaves an oversized gap on any
+    // tablet's font-scale / accessibility text-size setting.
+    function syncControlsHeight() {
+      var el = document.querySelector('.table-controls');
+      if (el) {
+        document.documentElement.style.setProperty('--controls-h', el.offsetHeight + 'px');
+      }
+    }
+    window.addEventListener('load', syncControlsHeight);
+    window.addEventListener('resize', syncControlsHeight);
+    window.addEventListener('orientationchange', function () {
+      // slight delay lets the browser finish reflow after rotation
+      setTimeout(syncControlsHeight, 150);
+    });
+  </script>
+
   <!-- Sparks Layer -->
   <div class="sparks-container">
       <div class="spark"></div>
