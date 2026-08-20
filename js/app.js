@@ -1,8 +1,8 @@
 let idleTimer = null;
-const IDLE_TIMEOUT_MS = 30000; // Auto reset after 30 seconds of inactivity[cite: 6]
+const IDLE_TIMEOUT_MS = 30000; // Auto reset after 30 seconds of inactivity
 
 let themeHideTimer = null;
-const THEME_HIDE_TIMEOUT_MS = 5000; // 5 seconds auto hide timer for theme button[cite: 6]
+const THEME_HIDE_TIMEOUT_MS = 5000; // 5 seconds auto hide timer for theme button
 
 document.addEventListener("DOMContentLoaded", () => {
   renderProductButtons();
@@ -200,7 +200,7 @@ function startThemeHideTimer() {
   }, THEME_HIDE_TIMEOUT_MS);
 }
 
-// Auto Load Saved Theme on Boot (Defaulting to Dark Mode for First-Time Users)
+// Auto Load Saved Theme on Boot
 function initTheme() {
   const savedTheme = localStorage.getItem("kiosk-theme");
   
@@ -210,6 +210,7 @@ function initTheme() {
     document.body.classList.add("dark-mode");
   }
 }
+
 // Send Custom Messages (like E-STOP or CONT) to MQTT
 window.publishMessage = function(topic, payload) {
   if (!mqttClient || !mqttClient.connected) {
