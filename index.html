@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <!-- STRICT Viewport Lock: Prevents pinch-zoom, scaling, and bouncing on all devices -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SLTC AgriPulse UI - Kiosk Device 03</title>
   
   <link rel="stylesheet" href="style.css">
@@ -12,7 +12,7 @@
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   
   <style>
-    /* 1. UNIVERSAL BOX-SIZING FIX (Prevents the Back Button from being cut off) */
+    /* 1. UNIVERSAL BOX-SIZING FIX */
     * {
       box-sizing: border-box !important;
     }
@@ -22,7 +22,7 @@
       -webkit-user-select: none; 
       user-select: none; 
       touch-action: pan-y; 
-      overflow: hidden !important; /* Locks the main body from scrolling */
+      overflow: hidden !important; 
       width: 100vw;
       height: 100vh;
       margin: 0;
@@ -44,7 +44,7 @@
       visibility: hidden !important;
     }
 
-    /* 4. MAIN LAYOUT ENGINE (Bulletproof Flexbox) */
+    /* 4. MAIN LAYOUT ENGINE */
     .kiosk-container {
       display: flex;
       flex-direction: column;
@@ -55,7 +55,7 @@
     }
 
     .app-header {
-      flex-shrink: 0; /* Keeps header from squishing */
+      flex-shrink: 0; 
       padding: 10px !important;
     }
 
@@ -63,7 +63,7 @@
     .view-state {
       flex: 1;
       width: 100%;
-      min-height: 0 !important; /* CRITICAL: Forces children to scroll instead of stretching the page */
+      min-height: 0 !important; 
       display: none; 
       flex-direction: column;
     }
@@ -74,25 +74,26 @@
     #idle-view {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
-      padding-bottom: 80px; 
+      padding-bottom: 90px; 
     }
 
     #active-view {
-      padding: 15px 20px !important;
-      overflow: hidden !important; /* Locks active view so only the card scrolls */
+      padding: 15px 0 !important;
+      overflow: hidden !important; 
     }
 
-    /* 5. BACK BUTTON FIX */
+    /* 5. PERFECTLY ALIGNED BACK BUTTON */
     .back-btn {
-      align-self: flex-start !important; /* Snaps safely to the left edge */
-      margin: 0 0 15px 0 !important;
-      flex-shrink: 0;
-      display: inline-flex !important;
+      margin: 0 auto 15px auto !important;
+      width: 95%;
+      max-width: 800px;
+      display: flex !important;
+      justify-content: flex-start !important;
       align-items: center;
       gap: 8px;
       background: rgba(30, 30, 30, 0.95) !important;
       color: #ffffff !important;
-      padding: 10px 20px !important;
+      padding: 12px 20px !important;
       border-radius: 8px !important;
       border: 1px solid rgba(255,255,255,0.2) !important;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
@@ -105,18 +106,18 @@
     .split-container {
       flex: 1;
       width: 100%;
-      overflow-y: auto !important; /* Only the description scrolls */
+      overflow-y: auto !important; 
       -webkit-overflow-scrolling: touch;
-      padding-bottom: 90px !important; /* Space so hardware buttons don't block text */
+      padding-bottom: 90px !important; 
     }
 
     .detail-card {
       margin: 0 auto;
-      width: 100%;
+      width: 95%;
       max-width: 800px;
       word-wrap: break-word; 
       overflow-wrap: break-word;
-      background: rgba(15, 20, 30, 0.85) !important; /* Darker background for readability */
+      background: rgba(15, 20, 30, 0.85) !important; 
       border-radius: 12px;
       padding: 25px !important;
     }
@@ -127,22 +128,33 @@
       white-space: pre-wrap; 
     }
 
-    /* 7. HARDWARE BUTTONS (Bottom Left, Small) */
+    /* 7. SYMMETRICAL, CENTERED HARDWARE BUTTONS */
     .table-controls {
       position: fixed;
-      bottom: 15px;
-      left: 15px;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 1000;
       display: flex;
-      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      width: 90%;
+      max-width: 450px; /* Keeps them nicely grouped in the center */
     }
 
     .table-controls button {
-      padding: 8px 14px !important; 
-      font-size: 12px !important;    
-      border-radius: 6px !important; 
+      flex: 1; /* Makes both buttons exactly the same width */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 12px 10px !important; 
+      font-size: 13px !important;    
+      border-radius: 8px !important; 
       border: 1px solid rgba(255,255,255,0.2) !important;
-      white-space: nowrap;
+      white-space: normal; /* Allows text to stack neatly if needed */
+      line-height: 1.2;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.4) !important;
@@ -156,30 +168,24 @@
       .brand-badge { flex-direction: row; justify-content: center; transform: scale(0.7); margin-bottom: 0 !important; margin-top: -5px !important; }
       
       .products-grid { 
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; 
-        gap: 10px !important; 
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; 
+        gap: 12px !important; 
         padding: 5px 15px !important;
+        justify-content: center !important;
       }
       .card-btn { padding: 12px 8px !important; min-height: 75px !important; }
       .card-number { font-size: 1.3rem !important; }
       .card-label { font-size: 0.85rem !important; }
 
-      #active-view { padding: 10px !important; }
+      #active-view { padding: 10px 0 !important; }
       .detail-card { padding: 15px !important; }
       #prod-title { font-size: 1.3rem !important; }
       #prod-subtitle { font-size: 0.95rem !important; }
       #prod-desc { font-size: 0.95rem !important; }
 
-      /* Mobile Portrait Hardware Buttons */
-      @media (orientation: portrait) {
-        .table-controls {
-          left: 0; bottom: 0; width: 100%;
-          background: rgba(0,0,0,0.85);
-          backdrop-filter: blur(10px);
-          padding: 10px; gap: 8px;
-          justify-content: space-between;
-        }
-        .table-controls button { flex: 1; text-align: center; white-space: normal; padding: 10px 5px !important; }
+      .table-controls {
+        bottom: 15px;
+        width: 95%;
       }
     }
   </style>
@@ -257,7 +263,7 @@
       </div>
     </main>
 
-    <!-- Table Hardware Controls -->
+    <!-- Table Hardware Controls (Perfectly Centered & Aligned) -->
     <div class="table-controls">
       <button onclick="publishMessage('sltc-agripulse-kiosk/control', 'CONT')" style="background: rgba(0, 123, 255, 0.8); color: white; font-weight: bold;">
         Continuous Rotation
