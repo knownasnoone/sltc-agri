@@ -210,3 +210,13 @@ function initTheme() {
     document.body.classList.add("dark-mode");
   }
 }
+// Send Custom Messages (like E-STOP or CONT) to MQTT
+window.publishMessage = function(topic, payload) {
+  if (!mqttClient || !mqttClient.connected) {
+    console.error("[MQTT] Not connected to broker, cannot send message.");
+    return;
+  }
+
+  mqttClient.publish(topic, payload);
+  console.log(`[MQTT] Published: ${payload} to topic: ${topic}`);
+};
