@@ -1,1 +1,0 @@
-TomatoVision AI is an intelligent Edge-AI vision suite designed to streamline fresh produce inspection. Utilizing advanced deep learning (CNN) architectures, the app performs real-time fruit shape detection, ripeness grading (Unripe, Ripe, Overripe, Spoiled), and shelf-life prediction directly on your device—100% offline and instantly.
