@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLTC AgriPulse UI - Kiosk Device 01</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- BACKGROUND VIDEO LAYER -->
+  <div class="bg-video-container">
+    <video class="bg-video" autoplay loop muted playsinline>
+      <source src="assets/Background.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <div class="bg-overlay"></div>
+
+  <div class="kiosk-container">
+
+    <button id="theme-toggle" class="theme-toggle-btn" onclick="handleThemeTouch()" aria-label="Toggle Theme">
+      <svg class="sun-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+      <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+
+    <header class="app-header">
+      <div class="brand-badge">
+        <img src="assets/top logo.svg" alt="SLTC Knowledge Hub Logo" class="header-logo">
+        <div class="logo-divider"></div>
+        <img src="assets/top logo 2.png" alt="Pro Food Pro Pack Logo" class="header-logo-secondary">
+      </div>
+      <h1 class="main-title">ProFood ProPack & AgBiz</h1>
+      <p class="sub-title">Where Agriculture and the Food Industry Meet Tomorrow.</p>
+    </header>
+
+    <main id="idle-view" class="view-state active">
+      <div class="cta-banner">
+        <span class="pulse-dot"></span>
+        <p>TOUCH A PRODUCT TO EXPLORE</p>
+      </div>
+
+      <div id="product-grid" class="products-grid">
+      </div>
+    </main>
+
+    <main id="active-view" class="view-state hidden">
+      <button onclick="closeDetails()" class="back-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Products
+      </button>
+
+      <div class="split-container">
+        <div class="detail-card">
+          <span id="prod-badge" class="badge">Product 01</span>
+          <h2 id="prod-title">Product Title</h2>
+          <p id="prod-subtitle" class="subtitle">Innovation Concept Subtitle</p>
+          <hr class="divider">
+          <p id="prod-desc" class="description">Product full description will appear here...</p>
+          
+          <div class="highlights-container">
+            <h3>Key Features</h3>
+            <ul id="prod-highlights">
+            </ul>
+          </div>
+        </div>
+
+        <div class="video-card">
+          <video id="prod-video" autoplay loop controls poster="">
+            <source id="video-source" src="" type="video/mp4">
+            Your browser does not support video playback.
+          </video>
+        </div>
+      </div>
+    </main>
+
+    <!-- Floating Bottom-Right Logo -->
+    <div class="kiosk-logo">
+      <img src="assets/logo.png" alt="Brand Logo" class="brand-sub-logo">
+    </div>
+
+  </div>
+
+  <script src="js/config-dev1.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Sparks Layer -->
+  <div class="sparks-container">
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+      <div class="spark"></div>
+  </div>
+</body>
+</html>
