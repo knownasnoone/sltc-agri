@@ -1,59 +1,26 @@
 let idleTimer = null;
-const IDLE_TIMEOUT_MS = 30000; // Auto reset after 30 seconds of inactivity
+const IDLE_TIMEOUT_MS = 30000; // Auto reset after 30 seconds of inactivity[cite: 6]
 
 let themeHideTimer = null;
-const THEME_HIDE_TIMEOUT_MS = 5000; // 5 seconds auto hide timer for theme button
+const THEME_HIDE_TIMEOUT_MS = 5000; // 5 seconds auto hide timer for theme button[cite: 6]
 
 document.addEventListener("DOMContentLoaded", () => {
   renderProductButtons();
   initTheme();
+  setupInteractionListeners();
   initMQTT();
 });
 
-// --- MQTT (HiveMQ) SETUP ---
-let mqttClient = null;
-const MQTT_TOPICS = CONFIG && CONFIG.mqttTopicPrefix
-  ? {
-      control: `${CONFIG.mqttTopicPrefix}/control`,
-      seek: `${CONFIG.mqttTopicPrefix}/seek`,
-      status: `${CONFIG.mqttTopicPrefix}/status`
-    }
-  : null;
-
-function initMQTT() {
-  if (!CONFIG.hasHardwareTable || !CONFIG.mqttBrokerUrl) return;
-
-  const clientId = "kiosk-dev" + CONFIG.deviceId + "-" + Math.random().toString(16).substr(2, 8);
-  mqttClient = mqtt.connect(CONFIG.mqttBrokerUrl, { clientId: clientId });
-
-  mqttClient.on("connect", () => {
-    console.log("[MQTT] Connected to broker.");
-    setMqttStatusDot(true);
-    mqttClient.subscribe(MQTT_TOPICS.status, (err) => {
-      if (!err) console.log("[MQTT] Subscribed to table status:", MQTT_TOPICS.status);
-    });
+// Setup Global User Interaction Handlers for Auto-Reset Timer
+function setupInteractionListeners() {
+  ["touchstart", "touchmove", "scroll", "mousemove", "pointerdown"].forEach(eventType => {
+    window.addEventListener(eventType, () => {
+      const activeView = document.getElementById("active-view");
+      if (activeView && activeView.classList.contains("active")) {
+        resetInactivityTimer();
+      }
+    }, { passive: true });
   });
-
-  mqttClient.on("reconnect", () => setMqttStatusDot(false));
-  mqttClient.on("offline", () => setMqttStatusDot(false));
-  mqttClient.on("error", (err) => {
-    console.error("[MQTT] Connection error:", err);
-    setMqttStatusDot(false);
-  });
-
-  mqttClient.on("message", (topic, message) => {
-    if (topic === MQTT_TOPICS.status) {
-      console.log("[MQTT] Table status:", message.toString());
-      // Hook point: if you want to show "Rotating..." / "Arrived" on screen,
-      // update the UI here based on the message content.
-    }
-  });
-}
-
-function setMqttStatusDot(connected) {
-  const dot = document.getElementById("mqtt-status-dot");
-  if (!dot) return;
-  dot.style.background = connected ? "#4CAF50" : "#E53935";
 }
 
 // Render Buttons Grid from Config Data
@@ -115,6 +82,15 @@ async function selectProduct(product) {
     highlightsList.appendChild(li);
   });
 
+  // Load and Play Video (only present on pages that still have a video card, e.g. dev1/dev2)
+  const video = document.getElementById("prod-video");
+  const videoSource = document.getElementById("video-source");
+  if (video && videoSource) {
+    videoSource.src = product.videoUrl || "assets/videos/Background.mp4";
+    video.load();
+    video.play().catch(e => console.log("Autoplay prevented:", e));
+  }
+
   // 3. Switch Views
   document.getElementById("idle-view").classList.remove("active");
   document.getElementById("idle-view").classList.add("hidden");
@@ -122,7 +98,7 @@ async function selectProduct(product) {
   document.getElementById("active-view").classList.remove("hidden");
   document.getElementById("active-view").classList.add("active");
 
-  // 4. Trigger ESP32 Wi-Fi Signal ONLY if Device 03 AND accessed via Main Tablet (Not Mobile / QR)
+  // 4. Trigger ESP32 signal (via MQTT) ONLY if Device 03 AND accessed via Main Tablet (Not Mobile / QR)
   const isMobileScreen = window.innerWidth <= 768;
   const isQRUser = new URLSearchParams(window.location.search).has("qr");
 
@@ -138,6 +114,9 @@ async function selectProduct(product) {
 
 // Back Button Function
 function closeDetails() {
+  const video = document.getElementById("prod-video");
+  if (video) video.pause();
+
   document.getElementById("active-view").classList.remove("active");
   document.getElementById("active-view").classList.add("hidden");
 
@@ -145,6 +124,51 @@ function closeDetails() {
   document.getElementById("idle-view").classList.add("active");
 
   if (idleTimer) clearTimeout(idleTimer);
+}
+
+// --- MQTT (HiveMQ) SETUP — only active on pages with hasHardwareTable: true ---
+let mqttClient = null;
+let MQTT_TOPICS = null;
+
+function initMQTT() {
+  if (typeof CONFIG === "undefined" || !CONFIG.hasHardwareTable || !CONFIG.mqttBrokerUrl) return;
+
+  MQTT_TOPICS = {
+    control: `${CONFIG.mqttTopicPrefix}/control`,
+    seek: `${CONFIG.mqttTopicPrefix}/seek`,
+    status: `${CONFIG.mqttTopicPrefix}/status`
+  };
+
+  const clientId = "kiosk-dev" + CONFIG.deviceId + "-" + Math.random().toString(16).substr(2, 8);
+  mqttClient = mqtt.connect(CONFIG.mqttBrokerUrl, { clientId: clientId });
+
+  mqttClient.on("connect", () => {
+    console.log("[MQTT] Connected to broker.");
+    setMqttStatusDot(true);
+    mqttClient.subscribe(MQTT_TOPICS.status, (err) => {
+      if (!err) console.log("[MQTT] Subscribed to table status:", MQTT_TOPICS.status);
+    });
+  });
+
+  mqttClient.on("reconnect", () => setMqttStatusDot(false));
+  mqttClient.on("offline", () => setMqttStatusDot(false));
+  mqttClient.on("error", (err) => {
+    console.error("[MQTT] Connection error:", err);
+    setMqttStatusDot(false);
+  });
+
+  mqttClient.on("message", (topic, message) => {
+    if (topic === MQTT_TOPICS.status) {
+      console.log("[MQTT] Table status:", message.toString());
+      // Hook point: update on-screen "Rotating..." / "Arrived" feedback here if desired.
+    }
+  });
+}
+
+function setMqttStatusDot(connected) {
+  const dot = document.getElementById("mqtt-status-dot");
+  if (!dot) return;
+  dot.style.background = connected ? "#4CAF50" : "#E53935";
 }
 
 // Send Seek Signal to ESP32 Hardware Table over MQTT (HiveMQ)
@@ -158,6 +182,18 @@ function sendSeekSignalToTable(productNumber) {
 
   mqttClient.publish(MQTT_TOPICS.seek, colorId.toString());
   console.log(`[MQTT] Sent seek request for Product ${productNumber} (Color ID: ${colorId}) on topic ${MQTT_TOPICS.seek}`);
+}
+
+// Manual table on/off control buttons (dev3 only)
+// "ON" -> continuous rotation, "OFF" -> immediate E-Stop (see ESP32 callback())
+function sendTableControl(command) {
+  if (!mqttClient || !mqttClient.connected) {
+    console.error("[MQTT] Not connected to broker, cannot send control signal.");
+    return;
+  }
+
+  mqttClient.publish(MQTT_TOPICS.control, command);
+  console.log(`[MQTT] Sent table control: ${command}`);
 }
 
 // Auto Reset Timer
@@ -200,7 +236,7 @@ function startThemeHideTimer() {
   }, THEME_HIDE_TIMEOUT_MS);
 }
 
-// Auto Load Saved Theme on Boot
+// Auto Load Saved Theme on Boot (Defaulting to Dark Mode for First-Time Users)
 function initTheme() {
   const savedTheme = localStorage.getItem("kiosk-theme");
   
@@ -210,14 +246,3 @@ function initTheme() {
     document.body.classList.add("dark-mode");
   }
 }
-
-// Send Custom Messages (like E-STOP or CONT) to MQTT
-window.publishMessage = function(topic, payload) {
-  if (!mqttClient || !mqttClient.connected) {
-    console.error("[MQTT] Not connected to broker, cannot send message.");
-    return;
-  }
-
-  mqttClient.publish(topic, payload);
-  console.log(`[MQTT] Published: ${payload} to topic: ${topic}`);
-};
