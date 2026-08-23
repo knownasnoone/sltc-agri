@@ -98,14 +98,13 @@ async function selectProduct(product) {
   document.getElementById("active-view").classList.remove("hidden");
   document.getElementById("active-view").classList.add("active");
 
-  // 4. Trigger ESP32 signal (via MQTT) ONLY if Device 03 AND accessed via Main Tablet (Not Mobile / QR)
-  const isMobileScreen = window.innerWidth <= 768;
+  // 4. Trigger ESP32 signal (via MQTT) ONLY if Device 03 AND NOT accessed via QR code (personal phone view)
   const isQRUser = new URLSearchParams(window.location.search).has("qr");
 
-  if (CONFIG.hasHardwareTable && !isMobileScreen && !isQRUser) {
+  if (CONFIG.hasHardwareTable && !isQRUser) {
     sendSeekSignalToTable(product.id);
   } else if (CONFIG.hasHardwareTable) {
-    console.log("[Hardware Ignored] Product clicked on Mobile/QR view. Table rotation signal bypassed.");
+    console.log("[Hardware Ignored] Product clicked via QR view. Table rotation signal bypassed.");
   }
 
   // 5. Start Inactivity Reset Counter
